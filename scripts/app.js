@@ -13,9 +13,13 @@ const MOVE_RIGHT = "right";
 
 let game = {
 	gridSize: 20,
-	refreshRate: 500, // milliseconds
+	refreshRate: 100, // milliseconds
 };
-
+// Player to dos
+// we need to lose
+//      when we hit a wall
+//      when we hit ourselves
+//      when we hit another player
 class Player {
 	/**
 	 * @param {number} x
@@ -31,7 +35,10 @@ class Player {
 
 		this.currentDirection = MOVE_DOWN;
 		this.head = new Segment(this.x, this.y, "yellow", this.ctx);
+		/** @type {Array<Segment>}  */
 		this.segments = [];
+		this.sneakCount = 0;
+		this.isDead = false;
 
 		this.lastUpdate = 0;
 		this.wireUpEvents();
@@ -43,8 +50,17 @@ class Player {
 	update(elapsedTime) {
 		this.lastUpdate += elapsedTime;
 		if (this.lastUpdate < this.game.refreshRate) return;
-
 		this.lastUpdate = 0;
+
+		for (let i = this.segments.length - 1; i >= 1; i--) {
+			this.segments[i].x = this.segments[i - 1].x;
+			this.segments[i].y = this.segments[i - 1].y;
+		}
+
+		if (this.segments.length > 0) {
+			this.segments[0].x = this.head.x;
+			this.segments[0].y = this.head.y;
+		}
 
 		switch (this.currentDirection) {
 			case MOVE_DOWN:
@@ -60,9 +76,22 @@ class Player {
 				this.head.x -= this.game.gridSize;
 				break;
 		}
+
+		// check for death
+		if (
+			this.head.x < 0 ||
+			this.head.y < 0 ||
+			this.head.x >= canvas.width ||
+			this.head.y >= canvas.height ||
+			this.segments.some((s) => s.x == this.head.x && s.y == this.head.y)
+		) {
+			this.isDead = true;
+		}
 	}
 
 	draw() {
+		//if(this.isDead) return
+
 		this.head.draw();
 		this.segments.forEach((s) => {
 			s.draw();
@@ -87,6 +116,15 @@ class Player {
 					break;
 			}
 		});
+	}
+
+	grow(growBy) {
+		for (let i = 0; i < growBy; i++) {
+			this.segments.push(
+				new Segment(this.head.x, this.head.y, "purple", this.ctx)
+			);
+		}
+		this.sneakCount++;
 	}
 }
 
@@ -115,18 +153,9 @@ class Segment {
 }
 
 // Food notes
-// Should obey our grid restrictions
-// when you run into your snake grows - randomize these
-// 		red food + 1 segment
-//		blue food + 2 segments
-//		gold food + 3 segments
-//  X start with circles
-// spawn in random grid
-// 	X	within the boundaries of the grid
 //		only spawn on empty grid spots
 // How many food spawn?
 //  	Make it configurable?
-//		At least 2
 
 class Food {
 	/**
@@ -139,7 +168,7 @@ class Food {
 		this.radius = game.gridSize / 2;
 		this.color = "red";
 		this.growBy = 1;
-		this.isEaten = false;
+		this.isEaten = true;
 	}
 
 	spawn() {
@@ -199,9 +228,24 @@ let p1 = new Player(5 * game.gridSize, 5 * game.gridSize, ctx, game);
 
 let food = [new Food(ctx), new Food(ctx), new Food(ctx), new Food(ctx)];
 
-food.forEach((f) => {
-	f.spawn();
-});
+/*
+ * @param {Array<Player>} players
+ * @param {Array<Food>} food
+ */
+
+function checkIfFoodIsConsumed(players, food) {
+	food.forEach((f) => {
+		players.forEach((p) => {
+			console.log(p, f);
+			if (p.head.x == f.x && p.head.y == f.y) {
+				console.log("food is eaten");
+				// food is eaten
+				f.isEaten = true;
+				p.grow(f.growBy);
+			}
+		});
+	});
+}
 
 //let f1 = new Food(ctx);
 //f1.spawn();
@@ -213,6 +257,8 @@ function gameLoop(timestamp) {
 	currentTime = timestamp;
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+	checkIfFoodIsConsumed([p1], food);
+
 	p1.update(elapsedTime);
 	p1.draw();
 
@@ -222,6 +268,15 @@ function gameLoop(timestamp) {
 		f.draw();
 	});
 
+	food.filter((f) => f.isEaten).forEach((f) => {
+		f.spawn();
+	});
+
+	let isGameOver = [p1].some((p) => p.isDead);
+	if (isGameOver) {
+		// do something crazy
+		return;
+	}
 	requestAnimationFrame(gameLoop);
 }
 
