@@ -43,6 +43,8 @@ class Player {
 		this.ctx = ctx;
 
 		this.currentDirection = MOVE_DOWN;
+		this.requestedDirection = MOVE_DOWN;
+
 		this.head = new Segment(this.x, this.y, "yellow", this.ctx);
 		/** @type {Array<Segment>}  */
 		this.segments = [];
@@ -53,6 +55,31 @@ class Player {
 		this.wireUpEvents();
 	}
 
+	isReverseMove() {
+		if (
+			this.requestedDirection == MOVE_RIGHT &&
+			this.currentDirection == MOVE_LEFT
+		)
+			return true;
+		if (
+			this.requestedDirection == MOVE_LEFT &&
+			this.currentDirection == MOVE_RIGHT
+		)
+			return true;
+		if (
+			this.requestedDirection == MOVE_DOWN &&
+			this.currentDirection == MOVE_UP
+		)
+			return true;
+		if (
+			this.requestedDirection == MOVE_UP &&
+			this.currentDirection == MOVE_DOWN
+		)
+			return true;
+
+		return false;
+	}
+
 	/**
 	 * @param {number} elapsedTime
 	 */
@@ -60,6 +87,28 @@ class Player {
 		this.lastUpdate += elapsedTime;
 		if (this.lastUpdate < this.game.refreshRate) return;
 		this.lastUpdate = 0;
+
+		if (this.isReverseMove()) {
+			//check is reverse is available
+			if (this.sneakCount > 0) {
+				//valid reversal
+				this.currentDirection = this.requestedDirection;
+				this.sneakCount--;
+				//figure out reversal
+
+				//reverse our body segments
+				let reverseSegments = [];
+
+				for (let i = this.segments.length - 1; i == 0; i--) {
+					reverseSegments.push(this.segments[i]);
+				}
+				this.segments = reverseSegments;
+
+				//flip head and tail positions
+			} else {
+				this.currentDirection = this.requestedDirection;
+			}
+		}
 
 		for (let i = this.segments.length - 1; i >= 1; i--) {
 			this.segments[i].x = this.segments[i - 1].x;
@@ -112,16 +161,16 @@ class Player {
 			// console.log(e.code);
 			switch (e.code) {
 				case "ArrowUp":
-					this.currentDirection = MOVE_UP;
+					this.requestedDirection = MOVE_UP;
 					break;
 				case "ArrowDown":
-					this.currentDirection = MOVE_DOWN;
+					this.requestedDirection = MOVE_DOWN;
 					break;
 				case "ArrowRight":
-					this.currentDirection = MOVE_RIGHT;
+					this.requestedDirection = MOVE_RIGHT;
 					break;
 				case "ArrowLeft":
-					this.currentDirection = MOVE_LEFT;
+					this.requestedDirection = MOVE_LEFT;
 					break;
 			}
 		});
