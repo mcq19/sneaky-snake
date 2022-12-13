@@ -11,6 +11,15 @@ const MOVE_DOWN = "down";
 const MOVE_LEFT = "left";
 const MOVE_RIGHT = "right";
 
+// to do for the game
+//     we need start game screen where we say if its 1 or 2 players
+//     Instructions on how to play (on the start screen)
+//     we need game over with play again screen
+//     2 player and conditions
+//     final scoring is based on body length
+//     player sneak attempt counts on screen
+//
+
 let game = {
 	gridSize: 20,
 	refreshRate: 100, // milliseconds
